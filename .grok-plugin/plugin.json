@@ -1,6 +1,6 @@
 {
   "name": "grok-live-pet",
-  "version": "0.1.1",
-  "description": "可点击回弹的 Q 版 Grok 娘桌宠，显示 Grok Build 的任务状态。",
+  "version": "0.2.0",
+  "description": "带 Q 弹、星星、惯性拖动和无级缩放的 Grok Build Live2D 桌宠。",
   "license": "MIT"
 }

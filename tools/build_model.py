@@ -47,8 +47,9 @@ PARAMETERS = {
     "ParamAngleX": (-30, 0, 30),
     "ParamAngleY": (-30, 0, 30),
     "ParamAngleZ": (-30, 0, 30),
-    "ParamEyeLOpen": (0, 1),
-    "ParamEyeROpen": (0, 1),
+    "ParamEyeLOpen": (0, 0.30, 0.65, 1),
+    "ParamEyeROpen": (0, 0.30, 0.65, 1),
+    "ParamWinkBlend": (0, 1),
     "ParamEyeBallX": (-1, 0, 1),
     "ParamEyeBallY": (-1, 0, 1),
     "ParamMouthOpenY": (0, 1),
@@ -94,7 +95,7 @@ def remove_feature(face, mask, center):
     face.paste(patch, (x0, y0), mask.crop((x0, y0, x1, y1)))
 
 
-def layers(source):
+def layers(source, blink, wink):
     alpha = source.getchannel("A")
     unassigned = Image.new("L", source.size, 255)
 
@@ -116,8 +117,14 @@ def layers(source):
     eyes = []
     for side, center, points in EYES:
         mask = polygon(points).filter(ImageFilter.GaussianBlur(2))
+        eye_parameter = f"ParamEye{side}Open"
         eyes.append((f"Eye{side}", cut(face, mask), HEAD_ANGLES + [
-            f"ParamEye{side}Open", "ParamEyeBallX", "ParamEyeBallY"], center, 20))
+            eye_parameter, "ParamEyeBallX", "ParamEyeBallY"], center, 20))
+        lid_parameters = HEAD_ANGLES + [eye_parameter]
+        if side == "L":
+            lid_parameters.append("ParamWinkBlend")
+            eyes.append(("WinkL", cut(wink, mask), lid_parameters, center, 22))
+        eyes.append((f"Lash{side}", cut(blink, mask), lid_parameters, center, 22))
         remove_feature(face, mask, center)
 
     mouth_center = (563, 531)
@@ -245,7 +252,27 @@ def deform_mesh(name, anchor, parameters, points):
 
 
 def write_json(path, data):
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
+
+
+def set_lid_opacity(rig, moc, parameters):
+    for index, spec in enumerate(rig.meshes):
+        if not spec.name.startswith(("Eye", "Lash", "Wink")):
+            continue
+        eye_axis = spec.bound_params.index(parameters[f"ParamEye{spec.name[-1]}Open"])
+        stride = math.prod(rig.params[pid].n_keys for pid in spec.bound_params[:eye_axis])
+        weights = (0, 0.58, 1, 1) if spec.name.startswith("Eye") else (1, 0.59, 0, 0)
+        wink_axis = parameters["ParamWinkBlend"]
+        wink_stride = 0
+        if wink_axis in spec.bound_params:
+            wink_stride = math.prod(rig.params[pid].n_keys for pid in spec.bound_params[:spec.bound_params.index(wink_axis)])
+        first = moc.sections["art_mesh_src.keyform_off"][index]
+        count = moc.sections["art_mesh_src.key_len"][index]
+        for cell in range(count):
+            weight = weights[(cell // stride) % len(weights)]
+            if wink_stride and bool((cell // wink_stride) % 2) != spec.name.startswith("Wink"):
+                weight = 0
+            moc.sections["art_mesh_key_src.opacity"][first + cell] = weight
 
 
 def build(upstream, output):
@@ -254,10 +281,11 @@ def build(upstream, output):
     from autorig.emit import cdi3, eye_blink_group, lipsync_group, model3
     from autorig.mesh import Mesh
 
-    source = Image.open(PROJECT / "assets/source/grok-chibi.png").convert("RGBA")
-    if source.size != (SOURCE_WIDTH, SOURCE_HEIGHT):
-        raise ValueError("The texture coordinates require the original 1122 × 1402 source")
-    parts = layers(source)
+    source, blink, wink = (Image.open(PROJECT / "assets/source" / f"grok-{expression}.png").convert("RGBA")
+                            for expression in ("chibi", "blink", "wink"))
+    if any(plate.size != (SOURCE_WIDTH, SOURCE_HEIGHT) for plate in (source, blink, wink)):
+        raise ValueError("The original and both expressions need the same 1122 × 1402 framing")
+    parts = layers(source, blink, wink)
     atlas, layout = allocate_textures(parts)
     canvas_w, canvas_h = SOURCE_WIDTH + PAD * 2, SOURCE_HEIGHT + PAD * 2
     rig = RigBuilder(canvas_w, canvas_h, PPU)
@@ -278,14 +306,18 @@ def build(upstream, output):
 
     output.mkdir(parents=True, exist_ok=True)
     atlas.save(output / "Atlas.png", optimize=True)
-    (output / f"{NAME}.moc3").write_bytes(rig.build().to_bytes())
+    moc = rig.build()
+    set_lid_opacity(rig, moc, parameters)
+    (output / f"{NAME}.moc3").write_bytes(moc.to_bytes())
     manifest = model3(NAME, ["Atlas.png"], False, True,
                       [eye_blink_group(list(parameters)), lipsync_group(list(parameters))])
     manifest["HitAreas"] = [{"Id": "Head", "Name": "Head"}, {"Id": "Body", "Name": "Body"}]
     write_json(output / f"{NAME}.model3.json", manifest)
     display_info = cdi3(rig.params, rig.parts)
     for param in display_info["Parameters"]:
-        if param["GroupId"] == "" or param["Id"] in ("ParamWing", "ParamHairSwing", "ParamArmL", "ParamArmR", "ParamStep"):
+        if param["Id"] == "ParamWinkBlend":
+            param["GroupId"] = "GroupFace"
+        elif param["GroupId"] == "" or param["Id"] in ("ParamWing", "ParamHairSwing", "ParamArmL", "ParamArmR", "ParamStep"):
             param["GroupId"] = "GroupBody"
     write_json(output / f"{NAME}.cdi3.json", display_info)
     icon = source.crop((174, 0, 940, 766))

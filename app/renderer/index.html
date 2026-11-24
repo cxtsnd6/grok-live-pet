@@ -10,11 +10,14 @@
   </head>
   <body>
     <div id="pet" aria-label="Grok 桌宠">
-      <div id="figure">
-        <canvas id="model" aria-label="Grok 娘 Live2D 模型"></canvas>
-        <img id="fallback" src="/assets/source/grok-chibi.png" alt="Grok 娘" hidden>
+      <div id="motion">
+        <div id="figure">
+          <canvas id="model" aria-label="Grok 娘 Live2D 模型"></canvas>
+          <img id="fallback" src="/assets/source/grok-chibi.png" alt="Grok 娘" hidden>
+        </div>
       </div>
     </div>
+    <canvas id="stars" aria-hidden="true"></canvas>
     <output id="status" aria-live="polite" hidden>
       <span id="status-dot" aria-hidden="true"></span>
       <span id="status-name">Grok Build</span>

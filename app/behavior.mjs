@@ -1,4 +1,5 @@
-export const sizes = [136, 176, 224, 272];
+export const minimumSize = 96;
+export const maximumSize = 520;
 export const defaults = Object.freeze({
   size: 176,
   onTop: true,
@@ -36,7 +37,7 @@ export function readPreferences(value = {}) {
   for (const key of Object.keys(defaults)) {
     if (typeof defaults[key] === 'boolean' && typeof value[key] === 'boolean') prefs[key] = value[key];
   }
-  if (sizes.includes(value.size)) prefs.size = value.size;
+  if (Number.isFinite(value.size)) prefs.size = clamp(value.size, minimumSize, maximumSize);
   if (Number.isFinite(value.position?.x) && Number.isFinite(value.position?.y)) {
     prefs.position = { x: value.position.x, y: value.position.y };
   }
@@ -47,21 +48,33 @@ export const clamp = (number, min, max) => Math.max(min, Math.min(max, number));
 export const distance = (start, end) => Math.hypot(end.x - start.x, end.y - start.y);
 
 export function desktopSize(size) {
-  return { width: Math.max(210, size + 42), height: size + 75 };
+  return { width: Math.max(210, Math.ceil(size + 42)), height: Math.ceil(size + 75) };
 }
 
-export function areaLimits(area, bounds) {
+export function avatarBox(bounds, size) {
+  const height = size * 0.95;
+  const unit = height / 1458;
+  const width = 1122 * unit;
+  const top = 62 + (size - height) / 2 + 28 * unit;
+  return { x: (bounds.width - width) / 2, y: top, width, height: 1402 * unit };
+}
+
+export function areaLimits(area, bounds, size) {
+  const figure = avatarBox(bounds, size);
+  const margin = 6;
+  const left = area.x - figure.x + margin;
+  const top = area.y - figure.y + margin;
   return {
-    left: area.x,
-    top: area.y,
-    right: Math.max(area.x, area.x + area.width - bounds.width),
-    ground: Math.max(area.y, area.y + area.height - bounds.height),
+    left,
+    top,
+    right: Math.max(left, area.x + area.width - figure.x - figure.width - margin),
+    bottom: Math.max(top, area.y + area.height - figure.y - figure.height - margin),
   };
 }
 
-export function clampPosition(point, area, bounds) {
-  const { left, top, right, ground } = areaLimits(area, bounds);
-  return { x: clamp(point.x, left, right), y: clamp(point.y, top, ground) };
+export function clampPosition(point, area, bounds, size) {
+  const { left, top, right, bottom } = areaLimits(area, bounds, size);
+  return { x: clamp(point.x, left, right), y: clamp(point.y, top, bottom) };
 }
 
 export function avatarHit(mask, point, bounds, size) {

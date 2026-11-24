@@ -2,7 +2,8 @@ import { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, net, protocol, sc
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { areaLimits, avatarHit, clampPosition, currentStatus, desktopSize, distance, readPreferences, sizes, statusLabels } from './behavior.mjs';
+import { areaLimits, avatarBox, avatarHit, clamp, clampPosition, currentStatus, defaults, desktopSize, distance, maximumSize, minimumSize, readPreferences, statusLabels } from './behavior.mjs';
+import { coast, contain, follow, joinAreas, releaseVelocity } from './motion.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const storage = path.join(process.env.LOCALAPPDATA || app.getPath('appData'), 'GrokLivePet');
@@ -40,6 +41,11 @@ function start() {
   let windowReady = false;
   let ignoreMouse = false;
   let gesture = null;
+  let glide = null;
+  let zoom = null;
+  let lastTick = performance.now();
+  let lastImpact = -Infinity;
+  let lastTilt = 0;
 
   protocol.handle('grokpet', (request) => {
     const url = new URL(request.url);
@@ -90,10 +96,11 @@ function start() {
     if (prefs.position) {
       const { x, y } = prefs.position;
       const center = { x: Math.round(x + bounds.width / 2), y: Math.round(y + bounds.height / 2) };
-      return clampPosition(prefs.position, screen.getDisplayNearestPoint(center).workArea, bounds);
+      const point = clampPosition(prefs.position, screen.getDisplayNearestPoint(center).workArea, bounds, prefs.size);
+      return { x: Math.round(point.x), y: Math.round(point.y) };
     }
-    const limits = areaLimits(screen.getPrimaryDisplay().workArea, bounds);
-    return { x: Math.max(limits.left, limits.right - 12), y: limits.ground };
+    const limits = areaLimits(screen.getPrimaryDisplay().workArea, bounds, prefs.size);
+    return { x: Math.round(Math.max(limits.left, limits.right - 12)), y: Math.round(limits.bottom - 4) };
   }
 
   function send(channel, value) {
@@ -125,18 +132,6 @@ function start() {
     send('pet:settings', prefs);
   }
 
-  function updateSize(size) {
-    const bounds = win.getBounds();
-    const next = desktopSize(size);
-    const { workArea } = screen.getDisplayMatching(bounds);
-    const point = { x: bounds.x + (bounds.width - next.width) / 2, y: bounds.y + bounds.height - next.height };
-    const clamped = clampPosition(point, workArea, next);
-    prefs.size = size;
-    win.setBounds({ ...next, x: Math.round(clamped.x), y: Math.round(clamped.y) });
-    rememberPosition();
-    applyPreferences();
-  }
-
   function toggleVisibility() {
     if (win.isVisible()) win.hide();
     else win.showInactive();
@@ -144,6 +139,8 @@ function start() {
 
   function resetPosition() {
     gesture = null;
+    glide = zoom = null;
+    showMotion({ vx: 0 }, performance.now());
     prefs.position = null;
     position(initialPosition(win.getBounds()));
     rememberPosition();
@@ -152,9 +149,7 @@ function start() {
   function buildMenu() {
     return Menu.buildFromTemplate([
       { label: win.isVisible() ? '隐藏桌宠' : '显示桌宠', click: toggleVisibility },
-      { label: '桌宠大小', submenu: sizes.map((size) => ({
-        label: `${size} 像素`, type: 'radio', checked: prefs.size === size, click: () => updateSize(size),
-      })) },
+      { label: '恢复默认大小', click: () => zoomTo(defaults.size) },
       { type: 'separator' },
       ...preferenceMenu.map(([label, key]) => ({ label, type: 'checkbox', checked: prefs[key], click: (item) => {
         prefs[key] = item.checked;
@@ -171,28 +166,121 @@ function start() {
     ]);
   }
 
-  function beginGesture() {
+  function zoomTo(size) {
+    glide = null;
+    showMotion({ vx: 0 }, performance.now());
+    if (!zoom) {
+      const bounds = win.getBounds();
+      const box = avatarBox(bounds, prefs.size);
+      zoom = {
+        target: prefs.size,
+        anchor: { x: bounds.x + bounds.width / 2, y: bounds.y + box.y + box.height },
+        area: screen.getDisplayMatching(bounds).workArea,
+      };
+    }
+    const limit = Math.max(minimumSize, Math.min(maximumSize, zoom.area.height - 64, zoom.area.width - 24));
+    zoom.target = clamp(size, minimumSize, limit);
+  }
+
+  function stepZoom(dt) {
+    const difference = zoom.target - prefs.size;
+    const done = Math.abs(difference) < 0.45;
+    const size = done ? zoom.target : prefs.size + difference * (1 - Math.exp(-dt * 19));
+    if (size !== prefs.size) {
+      const bounds = desktopSize(size);
+      const box = avatarBox(bounds, size);
+      const point = { x: zoom.anchor.x - bounds.width / 2, y: zoom.anchor.y - box.y - box.height };
+      const next = clampPosition(point, zoom.area, bounds, size);
+      prefs.size = size;
+      win.setBounds({ ...bounds, x: Math.round(next.x), y: Math.round(next.y) });
+      send('pet:settings', prefs);
+    }
+    if (done && !gesture?.resize) {
+      zoom = null;
+      rememberPosition();
+    }
+  }
+
+  function motionArea(box, cursor) {
+    const center = { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + 62 + prefs.size / 2) };
+    const current = screen.getDisplayNearestPoint(center);
+    if (!cursor) return current.workArea;
+    const target = screen.getDisplayNearestPoint(cursor);
+    return current.id === target.id ? current.workArea : joinAreas(current.workArea, target.workArea);
+  }
+
+  function showMotion(state, now) {
+    const tilt = Math.round(clamp(state.vx / 220, -4, 4) * 10) / 10;
+    if (tilt !== lastTilt) {
+      lastTilt = tilt;
+      send('pet:tilt', tilt);
+    }
+    if (state.impact?.speed > 90 && now - lastImpact > 160) {
+      lastImpact = now;
+      send('pet:impact', state.impact);
+    }
+  }
+
+  function beginGesture(resize) {
     if (prefs.passthrough) return;
     const cursor = screen.getCursorScreenPoint();
     const box = win.getBounds();
     if (!avatarHit(mask, cursor, box, prefs.size)) return;
-    gesture = { origin: cursor, offset: { x: cursor.x - box.x, y: cursor.y - box.y }, dragging: false };
+    if (zoom || glide) rememberPosition();
+    glide = zoom = null;
+    const now = performance.now();
+    showMotion({ vx: 0 }, now);
+    gesture = {
+      origin: cursor, offset: { x: cursor.x - box.x, y: cursor.y - box.y }, resize, size: prefs.size,
+      dragging: false, state: { x: box.x, y: box.y, vx: 0, vy: 0 }, samples: [{ ...cursor, time: now }],
+    };
   }
 
-  function moveGesture(cursor) {
+  function moveGesture(cursor, dt, now) {
     if (!gesture.dragging) gesture.dragging = distance(gesture.origin, cursor) >= 6;
     if (!gesture.dragging) return;
-    const area = screen.getDisplayNearestPoint(cursor).workArea;
+    if (gesture.resize) {
+      zoomTo(gesture.size * Math.exp((cursor.y - gesture.origin.y) / 200));
+      return;
+    }
+    gesture.samples.push({ ...cursor, time: now });
+    gesture.samples = gesture.samples.filter((sample) => now - sample.time < 110);
+    const box = win.getBounds();
+    const area = motionArea(box, cursor);
+    const limits = areaLimits(area, box, prefs.size);
     const point = { x: cursor.x - gesture.offset.x, y: cursor.y - gesture.offset.y };
-    position(clampPosition(point, area, win.getBounds()));
+    const target = { x: clamp(point.x, limits.left - 12, limits.right + 12), y: clamp(point.y, limits.top - 12, limits.bottom + 12) };
+    gesture.state = contain(follow(gesture.state, target, dt), limits, 0.42);
+    position(gesture.state);
+    showMotion(gesture.state, now);
   }
 
   function finishGesture() {
     if (!gesture) return;
-    moveGesture(screen.getCursorScreenPoint());
-    if (gesture.dragging) rememberPosition();
-    else send('pet:bounce');
+    const cursor = screen.getCursorScreenPoint();
+    const now = performance.now();
+    moveGesture(cursor, clamp((now - lastTick) / 1000, 0.003, 0.024), now);
+    const previous = gesture;
     gesture = null;
+    if (previous.resize) return;
+    const box = win.getBounds();
+    if (!previous.dragging) { send('pet:bounce'); return; }
+    const velocity = releaseVelocity(previous.state, previous.samples, now);
+    glide = { ...previous.state, ...velocity, area: motionArea(box, cursor) };
+  }
+
+  function stepGlide(dt, now) {
+    const limits = areaLimits(glide.area, win.getBounds(), prefs.size);
+    const next = contain(coast(glide, dt), limits, 0.62);
+    position(next);
+    showMotion(next, now);
+    if (Math.hypot(next.vx, next.vy) < 18) {
+      glide = null;
+      showMotion({ vx: 0 }, now);
+      rememberPosition();
+    } else {
+      glide = { ...next, area: glide.area };
+    }
   }
 
   function readStatus() {
@@ -218,9 +306,14 @@ function start() {
   }
 
   function tickPointer() {
+    const now = performance.now();
+    const dt = clamp((now - lastTick) / 1000, 0.001, 0.05);
+    lastTick = now;
     if (!win.isVisible()) return;
     const cursor = screen.getCursorScreenPoint();
-    if (gesture) moveGesture(cursor);
+    if (gesture) moveGesture(cursor, dt, now);
+    if (glide) stepGlide(dt, now);
+    if (zoom) stepZoom(dt);
     const hit = avatarHit(mask, cursor, win.getBounds(), prefs.size);
     const shouldIgnore = prefs.passthrough || (!gesture && !hit);
     if (ignoreMouse !== shouldIgnore) {
@@ -231,23 +324,32 @@ function start() {
 
   ipcMain.on('pet:pointer', (event, type) => {
     if (event.sender !== win.webContents) return;
-    if (type === 'down') beginGesture();
+    if (type === 'down' || type === 'resize') beginGesture(type === 'resize');
     if (type === 'up') finishGesture();
     if (type === 'cancel' && gesture) {
       if (gesture.dragging) rememberPosition();
       gesture = null;
+      showMotion({ vx: 0 }, performance.now());
     }
     if (type === 'menu' && !prefs.passthrough && !gesture) buildMenu().popup({ window: win });
   });
 
-  const pointerTimer = setInterval(tickPointer, 32);
+  ipcMain.on('pet:wheel', (event, delta) => {
+    if (event.sender !== win.webContents || prefs.passthrough || gesture || !Number.isFinite(delta)) return;
+    if (!avatarHit(mask, screen.getCursorScreenPoint(), win.getBounds(), prefs.size)) return;
+    zoomTo((zoom?.target ?? prefs.size) * Math.exp(-clamp(delta, -200, 200) * 0.00135));
+  });
+
+  const pointerTimer = setInterval(tickPointer, 16);
   const statusTimer = setInterval(readStatus, 320);
   app.on('before-quit', () => { clearInterval(pointerTimer); clearInterval(statusTimer); });
   for (const event of ['display-removed', 'display-metrics-changed']) {
     screen.on(event, () => {
       if (win.isDestroyed()) return;
+      gesture = glide = zoom = null;
+      showMotion({ vx: 0 }, performance.now());
       const bounds = win.getBounds();
-      position(clampPosition(bounds, screen.getDisplayMatching(bounds).workArea, bounds));
+      position(clampPosition(bounds, screen.getDisplayMatching(bounds).workArea, bounds, prefs.size));
       rememberPosition();
     });
   }

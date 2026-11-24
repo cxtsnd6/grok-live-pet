@@ -27,6 +27,11 @@
       "Name": "Eye Open R"
     },
     {
+      "Id": "ParamWinkBlend",
+      "GroupId": "GroupFace",
+      "Name": "WinkBlend"
+    },
+    {
       "Id": "ParamEyeBallX",
       "GroupId": "GroupFace",
       "Name": "Eyeball X"
@@ -143,8 +148,20 @@
       "Name": "EyeL"
     },
     {
+      "Id": "WinkL",
+      "Name": "WinkL"
+    },
+    {
+      "Id": "LashL",
+      "Name": "LashL"
+    },
+    {
       "Id": "EyeR",
       "Name": "EyeR"
+    },
+    {
+      "Id": "LashR",
+      "Name": "LashR"
     },
     {
       "Id": "MouthInside",
