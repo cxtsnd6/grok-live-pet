@@ -47,7 +47,9 @@ try {
             if ([System.IO.File]::Exists($target)) {
                 $previous = [System.IO.File]::ReadAllText($target) | ConvertFrom-Json -ErrorAction SilentlyContinue
             }
-            if (!$previous -or $previous.at -le $when) {
+            $keepTerminalPhase = $state -eq 'ended' -and $previous -and
+                $previous.phase -in @('done', 'error', 'cancelled') -and $when -lt ($previous.at + 7000)
+            if (!$keepTerminalPhase -and (!$previous -or $previous.at -le $when)) {
                 $tmp = Join-Path $events ([guid]::NewGuid().ToString('N') + '.tmp')
                 try {
                     $json = @{ phase = $state; at = $when } | ConvertTo-Json -Compress

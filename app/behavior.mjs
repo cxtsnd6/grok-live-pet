@@ -2,9 +2,6 @@ export const sizes = [136, 176, 224, 272];
 export const defaults = Object.freeze({
   size: 176,
   onTop: true,
-  look: true,
-  roam: true,
-  effects: true,
   bubble: true,
   passthrough: false,
   position: null,
@@ -50,7 +47,7 @@ export const clamp = (number, min, max) => Math.max(min, Math.min(max, number));
 export const distance = (start, end) => Math.hypot(end.x - start.x, end.y - start.y);
 
 export function desktopSize(size) {
-  return { width: Math.max(228, size + 52), height: size + 91 };
+  return { width: Math.max(210, size + 42), height: size + 75 };
 }
 
 export function areaLimits(area, bounds) {
@@ -68,14 +65,13 @@ export function clampPosition(point, area, bounds) {
 }
 
 export function avatarHit(mask, point, bounds, size) {
-  if (!mask.length) return '';
+  if (!mask.length) return false;
   const height = size * 0.95;
   const width = height * (1178 / 1458);
   const x = (point.x - bounds.x - (bounds.width - width) / 2) / width;
   const y = (point.y - bounds.y - 62 - (size - height) / 2) / height;
-  if (x < 0 || x >= 1 || y < 0 || y >= 1) return '';
+  if (x < 0 || x >= 1 || y < 0 || y >= 1) return false;
   const row = Math.floor(y * mask.length);
   const col = Math.floor(x * mask[row].length);
-  if (mask[row][col] !== '1') return '';
-  return y < 0.43 ? 'head' : 'body';
+  return mask[row][col] === '1';
 }

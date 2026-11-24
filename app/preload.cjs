@@ -9,8 +9,7 @@ const subscribe = (channel, listener) => {
 contextBridge.exposeInMainWorld('grokPet', {
   settings: (listener) => subscribe('pet:settings', listener),
   status: (listener) => subscribe('pet:status', listener),
-  action: (listener) => subscribe('pet:action', listener),
-  frame: (listener) => subscribe('pet:frame', listener),
+  bounce: (listener) => subscribe('pet:bounce', listener),
   pointer: (type) => {
     if (['down', 'up', 'cancel', 'menu'].includes(type)) ipcRenderer.send('pet:pointer', type);
   },

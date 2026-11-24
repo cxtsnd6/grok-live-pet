@@ -1,6 +1,6 @@
 # Grok Live Pet
 
-Grok Build 的 Windows Live2D 桌宠插件。金色双马尾的 Q 版 Grok 娘住在一个透明小窗里，会跟随鼠标看向你，也会用动作和气泡呈现 Grok Build 的工作状态。
+Grok Build 的 Windows Live2D 桌宠插件。单击金色双马尾的 Q 版 Grok 娘，她会在原地压扁、拉伸，再轻轻回到原来的形状。Grok Build 的工作状态显示在头顶气泡里。
 
 ## 安装
 
@@ -17,23 +17,19 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 
 | 操作 | 效果 |
 | --- | --- |
-| 单击头部或身体 | 摸头时冒爱心，戳身体时弹一下 |
-| 双击 | 投喂点心，播放咀嚼和碎屑粒子 |
+| 单击角色 | 以脚底为支点，压扁后弹回来 |
 | 拖住移动 | 在当前显示器内移动，也可拖到另一块屏幕 |
-| 快速拖动后松手 | 按照松手速度飞行，在屏幕边界弹回 |
-| 拖住时按右键 | 像弹弓一样向相反方向弹出去 |
-| 慢慢拖到屏幕左右边缘 | 桌宠探头，点它可以短暂走出来 |
-| 右键桌宠或系统托盘 | 试玩动作、切换尺寸或粒子效果、调整置顶和鼠标穿透 |
+| 右键桌宠或系统托盘 | 切换尺寸、调整置顶和鼠标穿透、开关任务气泡 |
 
-右键菜单还可以触发挥手、伸懒腰、转圈、庆祝、散步和小睡。默认模型画布高 176 像素，菜单提供 136、176、224、272 像素四档。鼠标穿透开启后，可以从系统托盘恢复交互。
+默认模型画布高 176 像素，菜单提供 136、176、224、272 像素四档。鼠标穿透开启后，可以从系统托盘恢复交互。
 
-Grok Build 通过 hooks 上报查找、修改、执行、等待确认、完成等状态。完成时会播放跳跃和彩纸。多个会话并发时优先显示需要确认的会话，其次显示错误状态。hooks 只在本机按会话哈希记录阶段和时间。
+Grok Build 通过 hooks 上报查找、修改、执行、等待确认、完成等状态。多个会话并发时优先显示需要确认的会话，其次显示错误状态。hooks 只在本机按会话哈希记录阶段和时间。
 
 ## 实现参考
 
 - 参考 `live2d_renderer.py` 和 `layered_window.py` 的模型渲染与透明窗口分层。此项目用独立的 Cubism 兼容模型包和 Electron 透明窗口渲染。[Alps-Link 大肥鱼桌宠](https://github.com/Alps-Link/deepseek-whale-Desktop-pet/blob/main/live2d_renderer.py) · [透明窗口源码](https://github.com/Alps-Link/deepseek-whale-Desktop-pet/blob/main/layered_window.py)
 - 参考 `desktop/main.cjs` 对鼠标命中区域、穿透和多显示器坐标的处理。桌宠的点击轮廓从立绘的 alpha 通道生成。[DeepSeek-chan companion](https://github.com/lcyyun/deepseek-chan-companion/blob/main/desktop/main.cjs)
-- 参考 `pet-director.js` 将持续的工作状态与短时互动动作分开驱动的结构。Grok 事件由自己的 Windows hook 投递。[seawhilt 大肥鱼](https://github.com/seawhilt/dafeiyu/blob/main/src/pet/pet-director.js) · [Grok Build Hooks](https://github.com/xai-org/grok-build/blob/main/crates/codegen/xai-grok-pager/docs/user-guide/10-hooks.md)
+- 参考 `pet-director.js` 对工作状态与点击互动分别处理的结构。Grok 事件由自己的 Windows hook 投递。[seawhilt 大肥鱼](https://github.com/seawhilt/dafeiyu/blob/main/src/pet/pet-director.js) · [Grok Build Hooks](https://github.com/xai-org/grok-build/blob/main/crates/codegen/xai-grok-pager/docs/user-guide/10-hooks.md)
 
 ## 模型与源码
 
