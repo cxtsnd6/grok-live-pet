@@ -3,7 +3,8 @@
   "FileReferences": {
     "Moc": "GrokChibi.moc3",
     "Textures": [
-      "Atlas.png"
+      "Atlas.png",
+      "Peace.png"
     ],
     "DisplayInfo": "GrokChibi.cdi3.json"
   },

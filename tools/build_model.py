@@ -50,6 +50,7 @@ PARAMETERS = {
     "ParamEyeLOpen": (0, 0.30, 0.65, 1),
     "ParamEyeROpen": (0, 0.30, 0.65, 1),
     "ParamWinkBlend": (0, 1),
+    "ParamPeace": (0, 1),
     "ParamEyeBallX": (-1, 0, 1),
     "ParamEyeBallY": (-1, 0, 1),
     "ParamMouthOpenY": (0, 1),
@@ -255,13 +256,16 @@ def write_json(path, data):
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
-def set_lid_opacity(rig, moc, parameters):
+def set_pose_opacity(rig, moc, parameters):
     for index, spec in enumerate(rig.meshes):
-        if not spec.name.startswith(("Eye", "Lash", "Wink")):
-            continue
-        eye_axis = spec.bound_params.index(parameters[f"ParamEye{spec.name[-1]}Open"])
-        stride = math.prod(rig.params[pid].n_keys for pid in spec.bound_params[:eye_axis])
-        weights = (0, 0.58, 1, 1) if spec.name.startswith("Eye") else (1, 0.59, 0, 0)
+        pose_axis = spec.bound_params.index(parameters["ParamPeace"])
+        pose_stride = math.prod(rig.params[pid].n_keys for pid in spec.bound_params[:pose_axis])
+        lid_stride = 0
+        weights = None
+        if spec.name.startswith(("Eye", "Lash", "Wink")):
+            eye_axis = spec.bound_params.index(parameters[f"ParamEye{spec.name[-1]}Open"])
+            lid_stride = math.prod(rig.params[pid].n_keys for pid in spec.bound_params[:eye_axis])
+            weights = (0, 0.58, 1, 1) if spec.name.startswith("Eye") else (1, 0.59, 0, 0)
         wink_axis = parameters["ParamWinkBlend"]
         wink_stride = 0
         if wink_axis in spec.bound_params:
@@ -269,9 +273,15 @@ def set_lid_opacity(rig, moc, parameters):
         first = moc.sections["art_mesh_src.keyform_off"][index]
         count = moc.sections["art_mesh_src.key_len"][index]
         for cell in range(count):
-            weight = weights[(cell // stride) % len(weights)]
-            if wink_stride and bool((cell // wink_stride) % 2) != spec.name.startswith("Wink"):
+            peace = (cell // pose_stride) % 2
+            if spec.name == "PeacePose":
+                weight = peace
+            elif peace:
                 weight = 0
+            elif wink_stride and bool((cell // wink_stride) % 2) != spec.name.startswith("Wink"):
+                weight = 0
+            else:
+                weight = weights[(cell // lid_stride) % len(weights)] if weights else 1
             moc.sections["art_mesh_key_src.opacity"][first + cell] = weight
 
 
@@ -281,10 +291,10 @@ def build(upstream, output):
     from autorig.emit import cdi3, eye_blink_group, lipsync_group, model3
     from autorig.mesh import Mesh
 
-    source, blink, wink = (Image.open(PROJECT / "assets/source" / f"grok-{expression}.png").convert("RGBA")
-                            for expression in ("chibi", "blink", "wink"))
-    if any(plate.size != (SOURCE_WIDTH, SOURCE_HEIGHT) for plate in (source, blink, wink)):
-        raise ValueError("The original and both expressions need the same 1122 × 1402 framing")
+    source, blink, wink, peace = (Image.open(PROJECT / "assets/source" / f"grok-{expression}.png").convert("RGBA")
+                                 for expression in ("chibi", "blink", "wink", "peace"))
+    if any(plate.size != (SOURCE_WIDTH, SOURCE_HEIGHT) for plate in (source, blink, wink, peace)):
+        raise ValueError("The original and expression artwork need the same 1122 × 1402 framing")
     parts = layers(source, blink, wink)
     atlas, layout = allocate_textures(parts)
     canvas_w, canvas_h = SOURCE_WIDTH + PAD * 2, SOURCE_HEIGHT + PAD * 2
@@ -299,17 +309,24 @@ def build(upstream, output):
                   for pid, keys in PARAMETERS.items()}
     root = rig.add_part("Pet")
     for order, (name, _, bindings, anchor, spacing) in enumerate(parts):
+        bindings = [*bindings, "ParamPeace"]
         mesh, points = make_mesh(Mesh, layout[name], spacing)
         rig.add_mesh(ArtMeshSpec(name=name, mesh=mesh, part_index=rig.add_part(name, root),
                      draw_order=500 + order, bound_params=[parameters[pid] for pid in bindings],
                      deform=deform_mesh(name, anchor, bindings, points)))
+    peace_atlas = Image.new("RGBA", (ATLAS_SIZE, ATLAS_SIZE))
+    peace_atlas.paste(peace, (4, 4))
+    peace_mesh, _ = make_mesh(Mesh, ((0, 0, SOURCE_WIDTH, SOURCE_HEIGHT), 4, 4), 68)
+    rig.add_mesh(ArtMeshSpec(name="PeacePose", mesh=peace_mesh, part_index=rig.add_part("PeacePose", root),
+                 texture_no=1, draw_order=500 + len(parts), bound_params=[parameters["ParamPeace"]]))
 
     output.mkdir(parents=True, exist_ok=True)
     atlas.save(output / "Atlas.png", optimize=True)
+    peace_atlas.save(output / "Peace.png", optimize=True)
     moc = rig.build()
-    set_lid_opacity(rig, moc, parameters)
+    set_pose_opacity(rig, moc, parameters)
     (output / f"{NAME}.moc3").write_bytes(moc.to_bytes())
-    manifest = model3(NAME, ["Atlas.png"], False, True,
+    manifest = model3(NAME, ["Atlas.png", "Peace.png"], False, True,
                       [eye_blink_group(list(parameters)), lipsync_group(list(parameters))])
     manifest["HitAreas"] = [{"Id": "Head", "Name": "Head"}, {"Id": "Body", "Name": "Body"}]
     write_json(output / f"{NAME}.model3.json", manifest)
@@ -317,7 +334,7 @@ def build(upstream, output):
     for param in display_info["Parameters"]:
         if param["Id"] == "ParamWinkBlend":
             param["GroupId"] = "GroupFace"
-        elif param["GroupId"] == "" or param["Id"] in ("ParamWing", "ParamHairSwing", "ParamArmL", "ParamArmR", "ParamStep"):
+        elif param["GroupId"] == "" or param["Id"] in ("ParamWing", "ParamHairSwing", "ParamArmL", "ParamArmR", "ParamStep", "ParamPeace"):
             param["GroupId"] = "GroupBody"
     write_json(output / f"{NAME}.cdi3.json", display_info)
     icon = source.crop((174, 0, 940, 766))
@@ -327,7 +344,7 @@ def build(upstream, output):
     padded.paste(source.getchannel("A"), (PAD, PAD))
     pixels = np.asarray(padded.resize((64, 80), Image.Resampling.LANCZOS).filter(ImageFilter.MaxFilter(3)))
     write_json(output / "HitMask.json", ["".join("1" if pixel > 46 else "0" for pixel in row) for row in pixels])
-    print(f"{NAME}: {len(rig.meshes)} art meshes, {len(rig.params)} parameters, {ATLAS_SIZE}px texture atlas")
+    print(f"{NAME}: {len(rig.meshes)} art meshes, {len(rig.params)} parameters, two {ATLAS_SIZE}px atlases")
 
 
 if __name__ == "__main__":

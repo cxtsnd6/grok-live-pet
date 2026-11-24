@@ -1,6 +1,6 @@
 # Grok Live Pet
 
-Grok Build 的 Windows Live2D 桌宠插件。单击金色双马尾的 Q 版 Grok 娘，她会原地 Q 弹、单眼 wink，并散出小星星。Grok Build 的工作状态显示在头顶气泡里。
+Grok Build 的 Windows Live2D 桌宠插件。单击金色双马尾的 Q 版 Grok 娘，她会原地 Q 弹、wink 比耶并散出小星星。Grok Build 的工作状态显示在头顶气泡里。
 
 ## 安装
 
@@ -17,8 +17,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 
 | 操作 | 效果 |
 | --- | --- |
-| 单击角色 | 以脚底为支点伸缩回弹，触发 wink 和星星粒子 |
-| 拖住移动 | 桌宠带阻尼跟随。松手后缓慢减速，碰到屏幕边缘会反弹 |
+| 单击角色 | 以脚底为支点伸缩回弹，触发 wink、比耶和星星粒子 |
+| 拖住移动 | 桌宠带阻尼跟随，松手后滑行减速，快甩可以连续撞边反弹 |
 | 鼠标悬停在角色上滚动 | 平滑放大或缩小 |
 | 按住 Shift 上下拖动角色 | 向下放大，向上缩小 |
 | 右键桌宠或系统托盘 | 恢复默认大小、调整置顶和鼠标穿透、开关任务气泡 |
@@ -35,7 +35,7 @@ Grok Build 通过 hooks 上报查找、修改、执行、等待确认、完成�
 
 ## 模型与源码
 
-- 立绘、双眼眨眼和 wink 共用同一套生成图。内置模型位于 `assets/model/`，入口是 `GrokChibi.model3.json`，包括 `.moc3` 网格、纹理和 15 个可动参数。[生成素材与提示词](assets/source/README.md)
+- 立绘、双眼眨眼、wink 和比耶都使用生成图。内置模型位于 `assets/model/`，入口是 `GrokChibi.model3.json`，包括 `.moc3` 网格、纹理和 16 个可动参数。[生成素材与提示词](assets/source/README.md)
 - [Mochi2D](https://github.com/waifucave/mochi2d/tree/4378a87535b0b55101615e05892957b311cc2c5a) 提供运行时，锁定提交 `4378a87535b0b55101615e05892957b311cc2c5a`。构建后取 `dist/lib/mochi2d.js` 作为 `third_party/mochi2d.mjs`，其授权和第三方声明与文件同目录。
 - 重新导出模型需要 Python 3.12 和 [live2d-autorig-claude](https://github.com/henceketh/live2d-autorig-claude/tree/9c21423559cd4dafebf4c4304f1b2dacdd9f7d31)。运行以下命令可重建模型文件。
 

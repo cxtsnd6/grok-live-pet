@@ -32,6 +32,11 @@
       "Name": "WinkBlend"
     },
     {
+      "Id": "ParamPeace",
+      "GroupId": "GroupBody",
+      "Name": "Peace"
+    },
+    {
       "Id": "ParamEyeBallX",
       "GroupId": "GroupFace",
       "Name": "Eyeball X"
@@ -170,6 +175,10 @@
     {
       "Id": "Smile",
       "Name": "Smile"
+    },
+    {
+      "Id": "PeacePose",
+      "Name": "PeacePose"
     }
   ]
 }

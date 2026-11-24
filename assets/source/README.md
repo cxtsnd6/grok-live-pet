@@ -2,7 +2,7 @@
 
 `grok-chibi.png` 由内置 ImageGen 生成。造型参考社区 Grok 娘的金色双马尾、黑红哥特配色和小蝠翼。轮廓采用大头、短腿的 Q 版全身比例。[蓝色大肥鱼档案馆](https://fisharchive.cc/characters)
 
-`grok-blink.png` 和 `grok-wink.png` 是对原立绘做的 ImageGen 表情编辑。`tools/build_model.py` 提取生成图里的眼部纹理，与头发、蝠翼、手臂、腿及嘴部网格一起导出为 Cubism 兼容模型。
+`grok-blink.png` 和 `grok-wink.png` 是对原立绘做的 ImageGen 表情编辑。`grok-peace.png` 是在 wink 立绘上继续用 ImageGen 生成的比耶姿势。`tools/build_model.py` 将这些贴图和头发、蝠翼、手臂、腿及嘴部网格一起导出为 Cubism 兼容模型。
 
 ## 生成提示词
 
@@ -23,4 +23,10 @@ Edit the supplied transparent anime game sprite for a matching Live2D eye-closur
 
 ```text
 Edit the attached transparent game sprite to create a matching expression plate for a Live2D desktop puppet. Make one localized edit only: the eye on the viewer's LEFT (the eye on the left side of the image, opposite the burgundy bow) makes a cute, natural closed-keyframe anime wink. The eyelid is a small, softly curved dark-plum lash with the outside tapered and swept slightly upward and with a little natural peach shading. Keep the shape clean and readable at 170 pixels. The other amber eye stays perfectly open, with exactly the same gaze, size, color, outline and reflections. Keep the exact original line art, skin coloring, cheek accents, eyebrows, mouth, nose, head angle, gold bangs and ponytails, red bow, costume, wings, hands, proportions, positioning, framing, and alpha cutout. Only the viewer-left eyelid and the previously open surface of that eye change. Preserve the original line-weight and cel shading. Use the same overall canvas and alignment because the eye area will be composited onto the original reference. One full character on genuinely transparent alpha. No stars, decorations, captions, added shadows, new pose or perspective changes.
+```
+
+### wink 与比耶
+
+```text
+Edit the attached Grok-girl chibi sprite, a transparent wink pose already used as a Live2D desktop pet. In its viewer-left half, change exactly that lowered arm and hand. Bend that arm naturally at the elbow and hold its hand at shoulder height just to the outside of the lower cheek, palm facing forward, making a cute, clearly readable peace sign. Only the index and middle finger are extended and form a V; ring and pinky curl into the palm, and the thumb is clear. Give the hand the same outline weight and scale as the original so it reads at 170 px. Keep the low elbow connected to the same shoulder under the cape, and keep the cuff, crimson button and ivory sleeve recognizable. The V should be left of and below the closed eye, with the face and wink unobstructed. Remove the old lowered hand from this side as part of the change. Preserve the other hand and arm in its original pose, the whole head and exact winking face, remaining original silhouette including both legs and shoes, hair and ribbons, clothing design, wings, proportions, palette, layout, pixel alignment and transparent alpha on the same canvas. This is an in-place arm and hand edit to matching animation frames. One complete character cutout from head to shoes, no added objects, stars, text, background, effects or shadows.
 ```

@@ -21,6 +21,7 @@ let failure = false;
 let blinkTimer = null;
 let eyeFrame = null;
 let eyeOpening = [1, 1];
+let peace = 0;
 let stopStars = null;
 
 function showStatus() {
@@ -79,6 +80,7 @@ function animateEyes(wink) {
   model.setParameter('ParamWinkBlend', wink ? 1 : 0);
   const start = performance.now();
   const previous = eyeOpening;
+  const previousPeace = peace;
   const duration = wink ? 356 : 150;
   const closeAt = wink ? 0.21 : 0.34;
   const reopenAt = wink ? 0.59 : 0.42;
@@ -91,6 +93,10 @@ function animateEyes(wink) {
     });
     model.setParameter('ParamEyeLOpen', eyeOpening[0]);
     model.setParameter('ParamEyeROpen', eyeOpening[1]);
+    peace = wink
+      ? (previousPeace + (1 - previousPeace) * ease(progress / 0.25)) * ease((0.89 - progress) / 0.16)
+      : previousPeace * (1 - ease(progress / 0.25));
+    model.setParameter('ParamPeace', peace);
     view.advance(0);
     if (progress < 1) eyeFrame = requestAnimationFrame(frame);
     else blinkTimer = setTimeout(idleBlink, 3200 + Math.random() * 3500);

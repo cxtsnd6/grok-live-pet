@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { areaLimits, avatarBox, avatarHit, clamp, clampPosition, currentStatus, defaults, desktopSize, distance, maximumSize, minimumSize, readPreferences, statusLabels } from './behavior.mjs';
-import { coast, contain, follow, joinAreas, releaseVelocity } from './motion.mjs';
+import { beginCoast, coast, contain, follow, glideFriction, glideRestitution, joinAreas, releaseVelocity, throwFriction, throwRestitution } from './motion.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const storage = path.join(process.env.LOCALAPPDATA || app.getPath('appData'), 'GrokLivePet');
@@ -266,12 +266,15 @@ function start() {
     const box = win.getBounds();
     if (!previous.dragging) { send('pet:bounce'); return; }
     const velocity = releaseVelocity(previous.state, previous.samples, now);
-    glide = { ...previous.state, ...velocity, area: motionArea(box, cursor) };
+    const area = motionArea(box, cursor);
+    glide = { ...beginCoast(previous.state, velocity, areaLimits(area, box, prefs.size)), area, started: now };
   }
 
   function stepGlide(dt, now) {
     const limits = areaLimits(glide.area, win.getBounds(), prefs.size);
-    const next = contain(coast(glide, dt), limits, 0.62);
+    const throwing = glide.bounces > 0 && now - glide.started < 5200;
+    const next = contain(coast(glide, dt, throwing ? throwFriction : glideFriction),
+      limits, throwing ? throwRestitution : glideRestitution);
     position(next);
     showMotion(next, now);
     if (Math.hypot(next.vx, next.vy) < 18) {
@@ -279,7 +282,7 @@ function start() {
       showMotion({ vx: 0 }, now);
       rememberPosition();
     } else {
-      glide = { ...next, area: glide.area };
+      glide = { ...next, area: glide.area, started: glide.started, bounces: Math.max(0, glide.bounces - next.hits) };
     }
   }
 
