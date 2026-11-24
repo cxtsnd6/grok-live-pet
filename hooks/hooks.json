@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "SessionStart": [{"hooks": [{"type": "command", "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${GROK_PLUGIN_ROOT}/hooks/observe.ps1\" -Phase ready -Launch", "timeout": 4}]}],
+    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${GROK_PLUGIN_ROOT}/hooks/observe.ps1\" -Phase thinking", "timeout": 2}]}],
+    "PreToolUse": [{"hooks": [{"type": "command", "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${GROK_PLUGIN_ROOT}/hooks/observe.ps1\" -Phase tool", "timeout": 2}]}],
+    "PostToolUse": [{"hooks": [{"type": "command", "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${GROK_PLUGIN_ROOT}/hooks/observe.ps1\" -Phase thinking", "timeout": 2}]}],
+    "PostToolUseFailure": [{"hooks": [{"type": "command", "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${GROK_PLUGIN_ROOT}/hooks/observe.ps1\" -Phase error", "timeout": 2}]}],
+    "PermissionDenied": [{"hooks": [{"type": "command", "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${GROK_PLUGIN_ROOT}/hooks/observe.ps1\" -Phase error", "timeout": 2}]}],
+    "Stop": [{"hooks": [{"type": "command", "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${GROK_PLUGIN_ROOT}/hooks/observe.ps1\" -Phase done", "timeout": 2}]}],
+    "StopFailure": [{"hooks": [{"type": "command", "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${GROK_PLUGIN_ROOT}/hooks/observe.ps1\" -Phase error", "timeout": 2}]}],
+    "StopCancelled": [{"hooks": [{"type": "command", "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${GROK_PLUGIN_ROOT}/hooks/observe.ps1\" -Phase cancelled", "timeout": 2}]}],
+    "Notification": [
+      {"matcher": "permission_prompt", "hooks": [{"type": "command", "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${GROK_PLUGIN_ROOT}/hooks/observe.ps1\" -Phase waiting", "timeout": 2}]},
+      {"matcher": "idle_prompt", "hooks": [{"type": "command", "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${GROK_PLUGIN_ROOT}/hooks/observe.ps1\" -Phase ready", "timeout": 2}]}
+    ],
+    "SessionEnd": [{"hooks": [{"type": "command", "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${GROK_PLUGIN_ROOT}/hooks/observe.ps1\" -Phase ended", "timeout": 2}]}]
+  }
+}

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self'; img-src 'self' blob: data:; connect-src 'self' blob:">
+    <title>Grok Live Pet</title>
+    <link rel="stylesheet" href="./pet.css">
+    <script type="module" src="./pet.mjs"></script>
+  </head>
+  <body>
+    <div id="pet" aria-label="Grok 桌宠">
+      <div id="figure">
+        <canvas id="model" aria-label="Grok 娘 Live2D 模型"></canvas>
+        <img id="fallback" src="/assets/source/grok-chibi.png" alt="Grok 娘" hidden>
+      </div>
+    </div>
+    <canvas id="particles" aria-hidden="true"></canvas>
+    <output id="status" aria-live="polite" hidden>
+      <span id="status-dot" aria-hidden="true"></span>
+      <span id="status-name">Grok Build</span>
+      <span id="status-separator" aria-hidden="true"></span>
+      <span id="status-text"></span>
+      <span id="status-count" hidden></span>
+    </output>
+  </body>
+</html>

@@ -1,0 +1,158 @@
+{
+  "Version": 3,
+  "Parameters": [
+    {
+      "Id": "ParamAngleX",
+      "GroupId": "GroupHead",
+      "Name": "Angle X"
+    },
+    {
+      "Id": "ParamAngleY",
+      "GroupId": "GroupHead",
+      "Name": "Angle Y"
+    },
+    {
+      "Id": "ParamAngleZ",
+      "GroupId": "GroupHead",
+      "Name": "Angle Z"
+    },
+    {
+      "Id": "ParamEyeLOpen",
+      "GroupId": "GroupFace",
+      "Name": "Eye Open L"
+    },
+    {
+      "Id": "ParamEyeROpen",
+      "GroupId": "GroupFace",
+      "Name": "Eye Open R"
+    },
+    {
+      "Id": "ParamEyeBallX",
+      "GroupId": "GroupFace",
+      "Name": "Eyeball X"
+    },
+    {
+      "Id": "ParamEyeBallY",
+      "GroupId": "GroupFace",
+      "Name": "Eyeball Y"
+    },
+    {
+      "Id": "ParamMouthOpenY",
+      "GroupId": "GroupFace",
+      "Name": "Mouth Open"
+    },
+    {
+      "Id": "ParamBreath",
+      "GroupId": "GroupBody",
+      "Name": "Breath"
+    },
+    {
+      "Id": "ParamHairSwing",
+      "GroupId": "GroupBody",
+      "Name": "HairSwing"
+    },
+    {
+      "Id": "ParamWing",
+      "GroupId": "GroupBody",
+      "Name": "Wing"
+    },
+    {
+      "Id": "ParamArmL",
+      "GroupId": "GroupBody",
+      "Name": "ArmL"
+    },
+    {
+      "Id": "ParamArmR",
+      "GroupId": "GroupBody",
+      "Name": "ArmR"
+    },
+    {
+      "Id": "ParamStep",
+      "GroupId": "GroupBody",
+      "Name": "Step"
+    }
+  ],
+  "ParameterGroups": [
+    {
+      "Id": "GroupHead",
+      "GroupId": "",
+      "Name": "Head"
+    },
+    {
+      "Id": "GroupFace",
+      "GroupId": "",
+      "Name": "Face"
+    },
+    {
+      "Id": "GroupBody",
+      "GroupId": "",
+      "Name": "Body"
+    }
+  ],
+  "Parts": [
+    {
+      "Id": "Pet",
+      "Name": "Pet"
+    },
+    {
+      "Id": "WingL",
+      "Name": "WingL"
+    },
+    {
+      "Id": "WingR",
+      "Name": "WingR"
+    },
+    {
+      "Id": "LegL",
+      "Name": "LegL"
+    },
+    {
+      "Id": "LegR",
+      "Name": "LegR"
+    },
+    {
+      "Id": "Neck",
+      "Name": "Neck"
+    },
+    {
+      "Id": "ArmL",
+      "Name": "ArmL"
+    },
+    {
+      "Id": "ArmR",
+      "Name": "ArmR"
+    },
+    {
+      "Id": "Body",
+      "Name": "Body"
+    },
+    {
+      "Id": "TailL",
+      "Name": "TailL"
+    },
+    {
+      "Id": "TailR",
+      "Name": "TailR"
+    },
+    {
+      "Id": "Head",
+      "Name": "Head"
+    },
+    {
+      "Id": "EyeL",
+      "Name": "EyeL"
+    },
+    {
+      "Id": "EyeR",
+      "Name": "EyeR"
+    },
+    {
+      "Id": "MouthInside",
+      "Name": "MouthInside"
+    },
+    {
+      "Id": "Smile",
+      "Name": "Smile"
+    }
+  ]
+}
